@@ -15,6 +15,6 @@ then use `SWHAL_USB_CDC_Transmit` and `SWHAL_USB_CDC_Receive`
 
 ## Catches
 
- - receive buffer need to be 32-bit aligned
- - havent been thoroughly tested, might be buggy ¯\\\_(ツ)_/¯
+ - receive buffer need to be 32-bit aligned and must be 64 bytes long
+ - have been tested on stm32l151(USB_FS) and stm32l411(USB_OTG), basic function should work fine
 
