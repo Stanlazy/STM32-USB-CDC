@@ -1,5 +1,6 @@
 ﻿## SW-STM32-USB-CDC
-Reinventing the Wheel, why not
+Reinventing the Wheel, because why not
+
 should be slightly better than the USB CDC provided by stm32cubemx in terms of speed and code size, didn't bother to actually get some data.
 
 ## How to use
