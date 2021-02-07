@@ -1,6 +1,9 @@
 #include "swhal_usb_pcd.h"
+#include <string.h>
 
 void SWHAL_USB_PCD_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* swpcd){
+	//SWHAL_USB_PCD_Reset(hpcd);
+	
 	swpcd->In_EP_Config[0].active = 1;
 	swpcd->In_EP_Config[0].ep_mps = 64;
 	swpcd->In_EP_Config[0].ep_type = EP_TYPE_CTRL;
@@ -9,8 +12,23 @@ void SWHAL_USB_PCD_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* sw
 	swpcd->Out_EP_Config[0].ep_mps = 64;
 	swpcd->Out_EP_Config[0].ep_type = EP_TYPE_CTRL;
 	
+	swpcd->reset_count = 0;
+	
 	hpcd->pData = swpcd;
 	HAL_PCD_Start(hpcd);
+}
+
+void SWHAL_USB_PCD_Reset(PCD_HandleTypeDef* hpcd){
+	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
+	for(uint8_t i = 0; i < EP_AMOUNT; i++){
+		HAL_PCD_EP_Close(hpcd, i);
+		HAL_PCD_EP_Close(hpcd, i|0x80);
+		HAL_PCD_EP_Flush(hpcd, i);
+		HAL_PCD_EP_Flush(hpcd, i|0x80);
+	}
+	memset(swpcd->In_EP_State, 0, sizeof(swpcd->In_EP_State));
+	memset(swpcd->Out_EP_State, 0, sizeof(swpcd->Out_EP_State));
+	swpcd->reset_count = 0;
 }
 
 void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len){
@@ -68,7 +86,8 @@ void SWHAL_USB_PCD_Stall(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t is_stal
 	}
 }
 
-static void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd, USB_Request_Packet_TypeDef* request){
+void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd){
+	USB_Request_Packet_TypeDef* request = hpcd->Setup;
 	if(request->bmRequestType.direction == USB_REQUEST_DIR_IN){
 		if(request->wLength){
 			HAL_PCD_EP_SetStall(hpcd, 0x80);
@@ -121,7 +140,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 						if(desc && desc->desc){
 							SWHAL_USB_PCD_Transmit(hpcd, 0, desc->desc, (request->wLength>desc->length)?desc->length:request->wLength);
 						} else {
-							SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+							SWHAL_USB_PCD_Stall_EP0(hpcd);
 						}
 					}break;
 					case USB_STD_DEV_REQ_GET_CONFIGURATION:{
@@ -135,7 +154,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 					//case USB_STD_DEV_REQ_CLEAR_FEATURE:
 					//case USB_STD_DEV_REQ_SET_FEATURE:
 					default:{
-						SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+						SWHAL_USB_PCD_Stall_EP0(hpcd);
 					}break;
 				}
 			}break;
@@ -152,7 +171,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 					//case USB_STD_ITF_REQ_CLEAR_FEATURE:
 					//case USB_STD_ITF_REQ_SET_FEATURE:
 					default:{
-						SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+						SWHAL_USB_PCD_Stall_EP0(hpcd);
 					}break;
 				}
 			}break;
@@ -163,22 +182,22 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 					//case USB_STD_EP_REQ_SET_FEATURE:
 					//case USB_STD_EP_REQ_SYNCH_FRAME:
 					default:{
-						SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+						SWHAL_USB_PCD_Stall_EP0(hpcd);
 					}break;
 				}
 			}break;
 			default:{
-				SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+				SWHAL_USB_PCD_Stall_EP0(hpcd);
 			}break;
 		}
 	} else {
 		if(swpcd->Nonstnadard_Setup){
 			int8_t retval = (*swpcd->Nonstnadard_Setup)(hpcd, request);
 			if(retval < 0){
-				SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+				SWHAL_USB_PCD_Stall_EP0(hpcd);
 			}
 		} else {
-			SWHAL_USB_PCD_Stall_EP0(hpcd, request);
+			SWHAL_USB_PCD_Stall_EP0(hpcd);
 		}
 	}
 	if(swpcd->SetupStageCallback)(*swpcd->SetupStageCallback)(hpcd);
@@ -202,17 +221,17 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 		SWHAL_USB_PCD_EP_Config_Typedef* Out_cfg = &(swpcd->In_EP_Config[i]);
 		if(In_cfg->active){
 			#if defined (USB)
-				HAL_PCDEx_PMAConfig(hpcd, i|0x80, PCD_SNG_BUF, last_pma_addr + In_cfg->ep_mps);
+				HAL_PCDEx_PMAConfig(hpcd, i|0x80, PCD_SNG_BUF, last_pma_addr);
 				last_pma_addr += In_cfg->ep_mps;
 			#endif
 			#if defined (USB_OTG_FS)
 				HAL_PCDEx_SetTxFiFo(hpcd, i, In_cfg->ep_mps*2/4);
 			#endif
-			HAL_PCD_EP_Open(hpcd, i|0x80, In_cfg->ep_mps,In_cfg->ep_type);
+			HAL_PCD_EP_Open(hpcd, i|0x80, In_cfg->ep_mps, In_cfg->ep_type);
 		}
 		if(Out_cfg->active){
 			#if defined (USB)
-				HAL_PCDEx_PMAConfig(hpcd, i, PCD_SNG_BUF, last_pma_addr +Out_cfg->ep_mps);
+				HAL_PCDEx_PMAConfig(hpcd, i, PCD_SNG_BUF, last_pma_addr);
 				last_pma_addr += Out_cfg->ep_mps;
 			#endif
 			#if defined (USB_OTG_FS)
@@ -224,6 +243,12 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 	#if defined (USB_OTG_FS)
 		HAL_PCDEx_SetRxFiFo(hpcd, total_rx*2/4);
 	#endif
+	
+	swpcd->reset_count++;
+	if(swpcd->reset_count >= 2){
+		if(swpcd->Real_Connected_Callback)(*swpcd->Real_Connected_Callback)(hpcd);
+	}
+	
 	if(swpcd->ResetCallback)(*swpcd->ResetCallback)(hpcd);
 }
 

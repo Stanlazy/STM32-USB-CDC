@@ -1,14 +1,9 @@
 #ifndef _SWHAL_USB_PCD_H
 #define _SWHAL_USB_PCD_H
 
-#include "main.h"
+#define EP_AMOUNT 8
 
-#if defined (USB_OTG_FS)
-	#define EP_AMOUNT 16
-#endif
-#if defined (USB)
-	#define EP_AMOUNT 8
-#endif
+#include "main.h"
 
 #define  USB_DESC_TYPE_DEVICE                           0x01U
 #define  USB_DESC_TYPE_CONFIGURATION                    0x02U
@@ -179,6 +174,8 @@ typedef struct {
 	SWHAL_USB_PCD_IN_EP_State_Typedef In_EP_State[EP_AMOUNT];
 	SWHAL_USB_PCD_OUT_EP_State_Typedef Out_EP_State[EP_AMOUNT];
 	
+	uint32_t reset_count;
+	
 	void (*SOFCallback)       (PCD_HandleTypeDef* hpcd);
 	void (*SetupStageCallback)(PCD_HandleTypeDef* hpcd);
 	void (*ResetCallback)     (PCD_HandleTypeDef* hpcd);
@@ -194,20 +191,22 @@ typedef struct {
 	void (*BCDCallback)             (PCD_HandleTypeDef* hpcd, PCD_BCD_MsgTypeDef msg);
 	void (*LPMCallback)             (PCD_HandleTypeDef* hpcd, PCD_LPM_MsgTypeDef msg);
 	
-	void (*Transmit_Cplt_Callback)(PCD_HandleTypeDef* hpcd, uint8_t epnum);
-	void (*Receive_Cplt_Callback) (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint16_t alen);
-	
-	int8_t (*Nonstnadard_Setup)(PCD_HandleTypeDef* hpcd, USB_Request_Packet_TypeDef* request);
+	void (*Transmit_Cplt_Callback) (PCD_HandleTypeDef* hpcd, uint8_t epnum);
+	void (*Receive_Cplt_Callback)  (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint16_t alen);
+	void (*Real_Connected_Callback)(PCD_HandleTypeDef* hpcd);
+	int8_t (*Nonstnadard_Setup)    (PCD_HandleTypeDef* hpcd, USB_Request_Packet_TypeDef* request);
 	
 	SWHAL_USB_PCD_Desc_Typedef* (*Get_Desc)(PCD_HandleTypeDef* hpcd, uint8_t bDescType, uint8_t iDescIdx);
 	
 	void* pData;
 } SWHAL_USB_PCD_HandleTypeDef;
 
-void SWHAL_USB_PCD_Init    (PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* swpcd);
-void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len);
-void SWHAL_USB_PCD_ReceiveA(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf);
-void SWHAL_USB_PCD_ReceiveL(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len);
-void SWHAL_USB_PCD_Stall   (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t is_stall);
+void SWHAL_USB_PCD_Init     (PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* swpcd);
+void SWHAL_USB_PCD_Reset    (PCD_HandleTypeDef* hpcd);
+void SWHAL_USB_PCD_Transmit (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len);
+void SWHAL_USB_PCD_ReceiveA (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf);
+void SWHAL_USB_PCD_ReceiveL (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len);
+void SWHAL_USB_PCD_Stall    (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t is_stall);
+void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd);
 
 #endif /*_SWHAL_USB_PCD_H*/

@@ -1,6 +1,9 @@
 #ifndef _SWHAL_USB_CDC_H
 #define _SWHAL_USB_CDC_H
 
+#define SERIAL_PORT_COUNT 3
+#define __NL__
+
 #include "main.h"
 #include "swhal_usb_pcd.h"
 
