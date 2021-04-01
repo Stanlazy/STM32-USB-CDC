@@ -151,6 +151,9 @@ void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd){
 	}
 }
 
+//#define STM32UID_ASCII
+
+#ifdef STM32UID_ASCII
 static inline void print_int(uint8_t* s, int n, uint8_t l){
 	if(n < 0){
 		n = 0 - n;
@@ -168,10 +171,9 @@ static inline void print_int(uint8_t* s, int n, uint8_t l){
 		n /= 10;
 	}
 }
+#endif
 
 SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Get_Serial(void){
-	#define STM32UID_ASCII
-	
 	#ifdef STM32UID_ASCII
 		#define STR_LEN 7+1+3+1+4+1+4
 	#else
@@ -195,16 +197,18 @@ SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Get_Serial(void){
 		ptr += 10;
 		print_int(ptr, ((uint16_t*)uid)[1], 4);
 	#else
-		for(int i = STR_LEN-1; i >= 0; i--){
-			uint8_t curr_uint8 = uid[i];
+		uid += 11;
+		for(int i = 0; i < STR_LEN/2; i++){
+			uint8_t curr_uint8 = *uid;
 			uint8_t temp;
 			temp = curr_uint8 >> 4;
-			ptr[0] = temp > 9 ? temp + 'A' : temp + '0';
+			ptr[0] = temp > 9 ? temp-0xA + 'A' : temp + '0';
 			ptr[1] = 0x00;
 			temp = curr_uint8 & 0x0F;
-			ptr[2] = temp > 9 ? temp + 'A' : temp + '0';
+			ptr[2] = temp > 9 ? temp-0xA + 'A' : temp + '0';
 			ptr[3] = 0x00;
 			ptr += 4;
+			uid--;
 		}
 	#endif
 	
