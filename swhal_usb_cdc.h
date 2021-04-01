@@ -50,7 +50,7 @@ typedef struct {
 } SWHAL_USB_CDC_HandleTypeDef;
 
 void SWHAL_USB_CDC_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* swpcd, SWHAL_USB_CDC_HandleTypeDef* swcdc);
-void SWHAL_USB_CDC_Transmit(PCD_HandleTypeDef* hpcd, uint8_t idx, uint8_t* buf, uint32_t size);
-void SWHAL_USB_CDC_Receive(PCD_HandleTypeDef* hpcd, uint8_t idx, uint8_t* buf);
+void SWHAL_USB_CDC_Transmit(PCD_HandleTypeDef* hpcd, uint8_t idx, void* buf, uint32_t size);
+void SWHAL_USB_CDC_Receive(PCD_HandleTypeDef* hpcd, uint8_t idx, void* buf);
 
 #endif

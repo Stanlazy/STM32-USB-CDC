@@ -78,7 +78,7 @@ void SWHAL_USB_PCD_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* sw
 	HAL_PCD_Start(hpcd);
 }
 
-void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len){
+void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf, uint32_t len){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
 	epnum &= 0x7f;
 	SWHAL_USB_PCD_IN_EP_State_Typedef* ep_state = &(swpcd->In_EP_State[epnum]);
@@ -95,7 +95,7 @@ void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf
 	}
 }
 
-void SWHAL_USB_PCD_ReceiveA(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf){
+void SWHAL_USB_PCD_ReceiveA(PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
 	epnum &= 0x7f;
 	SWHAL_USB_PCD_OUT_EP_State_Typedef* ep_state = &(swpcd->Out_EP_State[epnum]);
@@ -107,7 +107,7 @@ void SWHAL_USB_PCD_ReceiveA(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf
 	HAL_PCD_EP_Receive(hpcd, epnum, buf, mps);
 }
 
-void SWHAL_USB_PCD_ReceiveL(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t* buf, uint32_t len){
+void SWHAL_USB_PCD_ReceiveL(PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf, uint32_t len){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
 	epnum &= 0x7f;
 	SWHAL_USB_PCD_OUT_EP_State_Typedef* ep_state = &(swpcd->Out_EP_State[epnum]);
@@ -134,7 +134,7 @@ void SWHAL_USB_PCD_Stall(PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t is_stal
 }
 
 void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd){
-	USB_Request_Packet_TypeDef* request = hpcd->Setup;
+	USB_Request_Packet_TypeDef* request = (USB_Request_Packet_TypeDef*)hpcd->Setup;
 	if(request->bmRequestType.direction == USB_REQUEST_DIR_IN){
 		if(request->wLength){
 			HAL_PCD_EP_SetStall(hpcd, 0x80);
@@ -150,8 +150,6 @@ void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd){
 		}
 	}
 }
-
-//#define STM32UID_ASCII
 
 #ifdef STM32UID_ASCII
 static inline void print_int(uint8_t* s, int n, uint8_t l){
@@ -173,7 +171,7 @@ static inline void print_int(uint8_t* s, int n, uint8_t l){
 }
 #endif
 
-SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Get_Serial(void){
+SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Serial_Str_Desc(void){
 	#ifdef STM32UID_ASCII
 		#define STR_LEN 7+1+3+1+4+1+4
 	#else
@@ -215,6 +213,29 @@ SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Get_Serial(void){
 	return (SWHAL_USB_PCD_Desc_Typedef){serial_str, sizeof(serial_str)};
 }
 
+SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_String_Desc_Cvt(char* s){
+	__ALIGN_BEGIN static uint8_t str_buf[2+2*(MAX_STR_DESC_LEN)] __ALIGN_END;
+	int len = 0;
+	uint8_t* ptr = &(str_buf[2]);
+	while(*s){
+		ptr[0] = *s;
+		ptr[1] = 0x00;
+		s++;
+		ptr += 2;
+		len++;
+		if(len > MAX_STR_DESC_LEN) break;
+	}
+	len = len * 2 + 2;
+	str_buf[0] = len;
+	str_buf[1] = USB_DESC_TYPE_STRING;
+	return (SWHAL_USB_PCD_Desc_Typedef){str_buf, len};
+}
+
+SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Lang_Desc(void){
+	__ALIGN_BEGIN static const uint8_t lang_desc[4] __ALIGN_END = {0x04,0x03,0x09,0x04};
+	return (SWHAL_USB_PCD_Desc_Typedef){lang_desc, sizeof(lang_desc)};
+}
+
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
 	//nothing
@@ -233,7 +254,7 @@ static inline void SWHAL_USB_PCD_NStd_Setup(PCD_HandleTypeDef *hpcd, SWHAL_USB_P
 
 void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
-	USB_Request_Packet_TypeDef* request = hpcd->Setup;
+	USB_Request_Packet_TypeDef* request = (USB_Request_Packet_TypeDef*)hpcd->Setup;
 	if(request->bmRequestType.type == USB_REQUEST_TYPE_STANDARD) {
 		switch(request->bmRequestType.recipient){
 			case USB_REQUEST_RECIPIENT_DEVICE:{

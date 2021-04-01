@@ -328,10 +328,10 @@ void SWHAL_USB_CDC_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* sw
 	SWHAL_USB_PCD_Init(hpcd, swpcd);
 }
 
-void SWHAL_USB_CDC_Transmit(PCD_HandleTypeDef* hpcd, uint8_t idx, uint8_t* buf, uint32_t size){
+void SWHAL_USB_CDC_Transmit(PCD_HandleTypeDef* hpcd, uint8_t idx, void* buf, uint32_t size){
 	SWHAL_USB_PCD_Transmit(hpcd, idx, buf, size);
 }
 
-void SWHAL_USB_CDC_Receive(PCD_HandleTypeDef* hpcd, uint8_t idx, uint8_t* buf){
+void SWHAL_USB_CDC_Receive(PCD_HandleTypeDef* hpcd, uint8_t idx, void* buf){
 	SWHAL_USB_PCD_ReceiveA(hpcd, idx, buf);
 }
