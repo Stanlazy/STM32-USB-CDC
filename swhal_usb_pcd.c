@@ -69,6 +69,10 @@ void SWHAL_USB_PCD_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* sw
 	
 	hpcd->pData = swpcd;
 	
+	#ifdef REAL_CONN_RESET
+	reset_count = 0;
+	#endif
+	
 	//SWHAL_USB_PCD_Open_EP(hpcd);
 	
 	HAL_PCD_Start(hpcd);
