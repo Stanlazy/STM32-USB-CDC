@@ -103,7 +103,7 @@ static int8_t SWHAL_USB_CDC_NStd_Setup(PCD_HandleTypeDef *hpcd, USB_Request_Pack
 	return retval;
 }
 
-static SWHAL_USB_PCD_Desc_Typedef* SWHAL_USB_CDC_Get_Desc(PCD_HandleTypeDef *hpcd, uint8_t bDescType, uint8_t iDescIdx){
+static SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_CDC_Get_Desc(PCD_HandleTypeDef *hpcd, uint8_t bDescType, uint8_t iDescIdx){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
 	SWHAL_USB_CDC_HandleTypeDef* swcdc = swpcd->pData;
 	(void)swcdc;
@@ -300,10 +300,10 @@ static SWHAL_USB_PCD_Desc_Typedef* SWHAL_USB_CDC_Get_Desc(PCD_HandleTypeDef *hpc
 	};*/
 	(void)iDescIdx;
 	switch (bDescType){
-		case USB_DESC_TYPE_DEVICE:        return &dev_desc; break;
-		case USB_DESC_TYPE_CONFIGURATION: return &cfg_desc; break;
+		case USB_DESC_TYPE_DEVICE:        return dev_desc; break;
+		case USB_DESC_TYPE_CONFIGURATION: return cfg_desc; break;
 		//case USB_DESC_TYPE_STRING:
-		default:                          return NULL; break;
+		default:                          return (SWHAL_USB_PCD_Desc_Typedef){NULL, 0}; break;
 	};
 }
 
