@@ -8,15 +8,16 @@
 //#define REAL_CONN_RESET
 #define REAL_CONN_SETADDR
 #define STM32UID_ASCII
-#define MAX_STR_DESC_LEN 32
+//#define ENABLE_STR_DESC_CVT
+//#define MAX_STR_DESC_LEN 32
 
 typedef struct {
-	void* desc;
+	const void* desc;
 	uint16_t length;
 } SWHAL_USB_PCD_Desc_Typedef;
 
 typedef struct {
-	void* buffer;
+	const void* buffer;
 	uint32_t length;
 } SWHAL_USB_PCD_IN_EP_State_Typedef;
 
@@ -69,13 +70,16 @@ typedef struct {
 } SWHAL_USB_PCD_HandleTypeDef;
 
 void SWHAL_USB_PCD_Init     (PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* swpcd);
-void SWHAL_USB_PCD_Transmit (PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf, uint32_t len);
+void SWHAL_USB_PCD_DeInit   (PCD_HandleTypeDef* hpcd);
+void SWHAL_USB_PCD_Transmit (PCD_HandleTypeDef* hpcd, uint8_t epnum, const void* buf, uint32_t len);
 void SWHAL_USB_PCD_ReceiveA (PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf);
 void SWHAL_USB_PCD_ReceiveL (PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf, uint32_t len);
 void SWHAL_USB_PCD_Stall    (PCD_HandleTypeDef* hpcd, uint8_t epnum, uint8_t is_stall);
 void SWHAL_USB_PCD_Stall_EP0(PCD_HandleTypeDef* hpcd);
 SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Serial_Str_Desc(void);
-SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_String_Desc_Cvt(char* s);
 SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Lang_Desc(void);
+#ifdef ENABLE_STR_DESC_CVT
+SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_String_Desc_Cvt(char* s);
+#endif
 
 #endif /*_SWHAL_USB_PCD_H*/

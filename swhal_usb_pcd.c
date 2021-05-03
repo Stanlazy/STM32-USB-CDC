@@ -78,7 +78,24 @@ void SWHAL_USB_PCD_Init(PCD_HandleTypeDef* hpcd, SWHAL_USB_PCD_HandleTypeDef* sw
 	HAL_PCD_Start(hpcd);
 }
 
-void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf, uint32_t len){
+void SWHAL_USB_PCD_DeInit(PCD_HandleTypeDef* hpcd){
+	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
+	
+	HAL_PCD_Stop(hpcd);
+	
+	for(uint8_t i = 0; i < EP_AMOUNT; i++){
+		HAL_PCD_EP_Flush(hpcd, i);
+		HAL_PCD_EP_Close(hpcd, i);
+		HAL_PCD_EP_Flush(hpcd, i|0x80);
+		HAL_PCD_EP_Close(hpcd, i|0x80);
+	}
+	
+	memset(swpcd, 0, sizeof(SWHAL_USB_PCD_HandleTypeDef));
+	
+	hpcd->pData = NULL;
+}
+
+void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, const void* buf, uint32_t len){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
 	epnum &= 0x7f;
 	SWHAL_USB_PCD_IN_EP_State_Typedef* ep_state = &(swpcd->In_EP_State[epnum]);
@@ -87,11 +104,11 @@ void SWHAL_USB_PCD_Transmit(PCD_HandleTypeDef* hpcd, uint8_t epnum, void* buf, u
 	if(len > mps){
 		ep_state->buffer = buf + mps;
 		ep_state->length = len - mps;
-		HAL_PCD_EP_Transmit(hpcd, epnum, buf, mps);
+		HAL_PCD_EP_Transmit(hpcd, epnum, (uint8_t*)buf, mps);
 	} else {
 		ep_state->buffer = buf;
 		ep_state->length = 0;
-		HAL_PCD_EP_Transmit(hpcd, epnum, buf, len);
+		HAL_PCD_EP_Transmit(hpcd, epnum, (uint8_t*)buf, len);
 	}
 }
 
@@ -213,6 +230,12 @@ SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Serial_Str_Desc(void){
 	return (SWHAL_USB_PCD_Desc_Typedef){serial_str, sizeof(serial_str)};
 }
 
+SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Lang_Desc(void){
+	__ALIGN_BEGIN static const uint8_t lang_desc[4] __ALIGN_END = {0x04,0x03,0x09,0x04};
+	return (SWHAL_USB_PCD_Desc_Typedef){lang_desc, sizeof(lang_desc)};
+}
+
+#ifdef ENABLE_STR_DESC_CVT
 SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_String_Desc_Cvt(char* s){
 	__ALIGN_BEGIN static uint8_t str_buf[2+2*(MAX_STR_DESC_LEN)] __ALIGN_END;
 	int len = 0;
@@ -230,11 +253,7 @@ SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_String_Desc_Cvt(char* s){
 	str_buf[1] = USB_DESC_TYPE_STRING;
 	return (SWHAL_USB_PCD_Desc_Typedef){str_buf, len};
 }
-
-SWHAL_USB_PCD_Desc_Typedef SWHAL_USB_PCD_Lang_Desc(void){
-	__ALIGN_BEGIN static const uint8_t lang_desc[4] __ALIGN_END = {0x04,0x03,0x09,0x04};
-	return (SWHAL_USB_PCD_Desc_Typedef){lang_desc, sizeof(lang_desc)};
-}
+#endif
 
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd){
 	SWHAL_USB_PCD_HandleTypeDef* swpcd = hpcd->pData;
@@ -265,7 +284,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 							uint8_t  remote_wakeup :1;
 							uint16_t unused        :14;
 						} retval;
-						USB_Configuration_Descriptor_TypeDef* cfg_desc = (*swpcd->Get_Desc)(hpcd, USB_DESC_TYPE_CONFIGURATION, 0).desc;
+						const USB_Configuration_Descriptor_TypeDef* cfg_desc = (*swpcd->Get_Desc)(hpcd, USB_DESC_TYPE_CONFIGURATION, 0).desc;
 						retval.self_powered = cfg_desc->bmAttributes.self_powered;
 						retval.remote_wakeup = cfg_desc->bmAttributes.remote_wakeup;
 						SWHAL_USB_PCD_Transmit(hpcd, 0, &retval, sizeof(retval));
@@ -413,11 +432,11 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 		if(ep_state->length > 0){
 			uint16_t mps = swpcd->In_EP_Config[epnum].ep_mps;
 			if(ep_state->length > mps){
-				HAL_PCD_EP_Transmit(hpcd, epnum, ep_state->buffer, mps);
+				HAL_PCD_EP_Transmit(hpcd, epnum, (uint8_t*)(ep_state->buffer), mps);
 				ep_state->buffer += mps;
 				ep_state->length -= mps;
 			} else {
-				HAL_PCD_EP_Transmit(hpcd, epnum, ep_state->buffer, ep_state->length);
+				HAL_PCD_EP_Transmit(hpcd, epnum, (uint8_t*)(ep_state->buffer), ep_state->length);
 				ep_state->length = 0;
 			}
 		} else {
