@@ -32,6 +32,8 @@ typedef struct __attribute__((packed)) {
 	uint8_t  bNumConfigurations;
 } USB_Device_Descriptor_TypeDef;
 
+_Static_assert(sizeof(USB_Device_Descriptor_TypeDef)==18, "USB_Device_Descriptor_TypeDef size not 18");
+
 typedef struct __attribute__((packed)) {
 	uint8_t  bLength;            //9
 	uint8_t  bDescriptorType;    //USB_DESC_TYPE_CONFIGURATION
@@ -48,6 +50,8 @@ typedef struct __attribute__((packed)) {
 	uint8_t  bMaxPower;          //per 2mA
 } USB_Configuration_Descriptor_TypeDef;
 
+_Static_assert(sizeof(USB_Configuration_Descriptor_TypeDef)==9, "USB_Configuration_Descriptor_TypeDef size not 9");
+
 typedef struct __attribute__((packed)) {
 	uint8_t  bLength;            //8
 	uint8_t  bDescriptorType;    //USB_DESC_TYPE_INTERFACE_ASSOCIATION
@@ -58,6 +62,8 @@ typedef struct __attribute__((packed)) {
 	uint8_t  bFunctionProtocol;
 	uint8_t  iFunction;
 } USB_Interface_Association_Descriptor_TypeDef;
+
+_Static_assert(sizeof(USB_Interface_Association_Descriptor_TypeDef)==8, "USB_Interface_Association_Descriptor_TypeDef size not 8");
 
 typedef struct __attribute__((packed)) {
 	uint8_t  bLength;            //9
@@ -70,6 +76,8 @@ typedef struct __attribute__((packed)) {
 	uint8_t  bInterfaceProtocol;
 	uint8_t  iInterface;
 } USB_Interface_Descriptor_TypeDef;
+
+_Static_assert(sizeof(USB_Interface_Descriptor_TypeDef)==9, "USB_Interface_Descriptor_TypeDef size not 9");
 
 #define  USB_ENDPOINT_TYPE_CONTROL                      0x00U
 #define  USB_ENDPOINT_TYPE_ISOCHRONOUS                  0x01U
@@ -96,6 +104,8 @@ typedef struct __attribute__((packed)) {
 	uint16_t wMaxPacketSize;
 	uint8_t  bInterval;
 } USB_Endpoint_Descriptor_TypeDef;
+
+_Static_assert(sizeof(USB_Endpoint_Descriptor_TypeDef)==7, "USB_Endpoint_Descriptor_TypeDef size not 7");
 
 #define  USB_REQUEST_RECIPIENT_DEVICE                   0x00U
 #define  USB_REQUEST_RECIPIENT_INTERFACE                0x01U
@@ -140,5 +150,31 @@ typedef struct __attribute__((packed)) {
 	uint16_t wIndex;
 	uint16_t wLength;
 } USB_Request_Packet_TypeDef;
+
+_Static_assert(sizeof(USB_Request_Packet_TypeDef)==8, "USB_Request_Packet_TypeDef size not 8");
+
+typedef struct __attribute__((packed)) {
+	uint8_t  bLength;            //9
+	uint8_t  bDescriptorType;    //USB_DESC_TYPE_HID_DESC
+	uint16_t bcdHID;             //0x0111
+	uint8_t  bCountryCode;       //0x00
+	uint8_t  bNumDescriptors;
+	uint8_t  bReportDescriptorType;//USB_DESC_TYPE_HID_REPORT_DESC
+	uint16_t wDescriptorLength;
+} USB_HID_Descriptor_TypeDef;
+
+_Static_assert(sizeof(USB_HID_Descriptor_TypeDef)==9, "USB_HID_Descriptor_TypeDef size not 9");
+
+typedef struct __attribute__((packed)) {
+	uint8_t  bLength;
+	uint8_t  bDescriptorType;    //USB_DESC_TYPE_STRING
+	uint16_t bString[];
+} USB_String_Descriptor_TypeDef;
+
+#define __NL__
+#define USB_STR_DESC_FILL(str)                                             __NL__\
+	.bLength = sizeof(USB_String_Descriptor_TypeDef) + sizeof(u##str) - 2, __NL__\
+	.bDescriptorType = USB_DESC_TYPE_STRING,                               __NL__\
+	.bString = u##str
 
 #endif /* _SWHAL_USB_DEF_H */
